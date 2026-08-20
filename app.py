@@ -4,8 +4,19 @@ import io
 from datetime import datetime, date, timedelta, timezone
 from functools import wraps
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+    USE_PSYCOPG3 = True
+    UniqueViolation = psycopg.errors.UniqueViolation
+    ProgrammingError = psycopg.ProgrammingError
+except ImportError:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    USE_PSYCOPG3 = False
+    UniqueViolation = psycopg2.errors.UniqueViolation
+    ProgrammingError = psycopg2.ProgrammingError
+
 from dotenv import load_dotenv
 from flask import (
     Flask, abort, flash, jsonify, redirect, render_template,
@@ -31,7 +42,11 @@ def get_db():
     # Support connection poolers and enforce SSL if in cloud
     if 'sslmode=' not in db_url and not db_url.startswith(('postgresql://localhost', 'postgresql://127.0.0.1')):
         db_url += ('&' if '?' in db_url else '?') + 'sslmode=require'
-    return psycopg2.connect(db_url, cursor_factory=RealDictCursor, connect_timeout=10)
+    
+    if USE_PSYCOPG3:
+        return psycopg.connect(db_url, row_factory=dict_row, connect_timeout=10)
+    else:
+        return psycopg2.connect(db_url, cursor_factory=RealDictCursor, connect_timeout=10)
 
 def query(sql, params=(), one=False, commit=False):
     conn = None
@@ -44,7 +59,7 @@ def query(sql, params=(), one=False, commit=False):
                 if one:
                     try:
                         return cur.fetchone()
-                    except psycopg2.ProgrammingError:
+                    except ProgrammingError:
                         return None
                 return None
             return cur.fetchone() if one else cur.fetchall()
@@ -336,7 +351,7 @@ def punch_in():
         )
         log_audit('PUNCH_IN', f"Location: {location_note}")
         flash('You are punched in. Have a productive shift!', 'success')
-    except psycopg2.errors.UniqueViolation:
+    except UniqueViolation:
         flash('You already have an active work session in progress.', 'error')
     except Exception as e:
         app.logger.error(f"Punch in error: {e}")
@@ -443,7 +458,7 @@ def break_start():
         
         log_audit('BREAK_START', f"Started {break_type}")
         flash(f'Break started ({break_type.replace("_", " ").title()}). Enjoy your pause!', 'success')
-    except psycopg2.errors.UniqueViolation:
+    except UniqueViolation:
         flash('You are already on an active break.', 'error')
     except Exception as e:
         app.logger.error(f"Break start error: {e}")
@@ -827,7 +842,7 @@ def admin_employees():
                 
                 log_audit('CREATE_EMPLOYEE', f"Created employee {emp_id} - {name}")
                 flash(f'Employee {name} ({emp_id}) added successfully.', 'success')
-            except psycopg2.errors.UniqueViolation:
+            except UniqueViolation:
                 flash(f'Employee ID {emp_id} or email already exists in the system.', 'error')
             except Exception as e:
                 app.logger.error(f"Create employee error: {e}")

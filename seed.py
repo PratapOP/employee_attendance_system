@@ -2,7 +2,13 @@ import os
 from datetime import date, datetime, timedelta, timezone
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
-import psycopg2
+
+try:
+    import psycopg
+    USE_PSYCOPG3 = True
+except ImportError:
+    import psycopg2
+    USE_PSYCOPG3 = False
 
 load_dotenv()
 
@@ -12,7 +18,7 @@ if not db_url:
     exit(1)
 
 print("Connecting to database...")
-conn = psycopg2.connect(db_url)
+conn = psycopg.connect(db_url) if USE_PSYCOPG3 else psycopg2.connect(db_url)
 
 with conn, conn.cursor() as cur:
     print("Clearing old demo data...")
