@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">ENTERPRISE SECURITY & COMPLIANCE</span>
+      <h2>System Audit Logs & Security Trail</h2>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Actor / User</th>
+          <th>Action Type</th>
+          <th>Event Details</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td style="white-space:nowrap;">
+              <strong>{{ log.created_at.strftime('%b %d, %Y') }}</strong>
+              <small style="display:block; color:var(--slate-500);">{{ log.created_at.strftime('%I:%M:%S %p') }}</small>
+            </td>
+            <td>
+              {% if log.name %}
+                <strong>{{ log.name }}</strong>
+                <small style="display:block; color:var(--slate-500);">{{ log.emp_id }} ({{ log.role }})</small>
+              {% else %}
+                <span class="muted">System / Anonymous</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="status-badge neutral" style="font-family:monospace; font-size:11px;">
+                {{ log.action }}
+              </span>
+            </td>
+            <td style="max-width:340px;">
+              <span style="font-size:13px; color:var(--slate-800);">{{ log.details or '—' }}</span>
+            </td>
+            <td>
+              <code style="font-size:12px; color:var(--slate-600);">{{ log.ip_address or '—' }}</code>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" class="empty-state">No audit logs recorded yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

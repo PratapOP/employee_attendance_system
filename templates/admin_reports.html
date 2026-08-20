@@ -1,1 +1,107 @@
-{% extends 'base.html' %}{% block content %}<section class="panel"><div class="section-heading"><div><p class="eyebrow">MANAGEMENT VIEW</p><h2>Productivity reports</h2></div></div><div class="table-wrap"><table><thead><tr><th>Employee / Date</th><th>Work completed</th><th>Progress</th><th>Achievements</th><th>Blockers</th><th>Rating</th></tr></thead><tbody>{% for row in reports %}<tr><td><strong>{{ row.name }}</strong><br><small>{{ row.report_date }} · {{ row.emp_id }}</small></td><td>{{ row.work_completed }}</td><td>{{ row.progress }}</td><td>{{ row.achievements or '—' }}</td><td>{{ row.blockers or '—' }}</td><td><span class="rating">{{ '★' * row.productivity_rating }}</span></td></tr>{% else %}<tr><td colspan="6" class="empty-state">No productivity reports submitted.</td></tr>{% endfor %}</tbody></table></div></section>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">DAILY ASYNCHRONOUS STANDUPS</span>
+      <h2>Productivity & EOD Reports</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      <a href="{{ url_for('export_reports_csv') }}" class="button primary small">
+        &#128190; Export Reports (CSV)
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter Toolbar -->
+  <form method="get" class="filter-bar" style="background:var(--slate-50); padding:14px; border-radius:var(--radius-md); border:1px solid var(--slate-200); margin-bottom: 20px;">
+    <div>
+      <input type="date" name="date" value="{{ filters.date }}" title="Filter by date">
+    </div>
+
+    <div>
+      <select name="employee">
+        <option value="">All Team Members</option>
+        {% for person in employees %}
+          <option value="{{ person.id }}" {{ 'selected' if filters.employee == person.id|string else '' }}>
+            {{ person.name }} ({{ person.emp_id }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="button secondary small">Filter</button>
+    {% if filters.date or filters.employee %}
+      <a href="{{ url_for('admin_reports') }}" class="button secondary small" style="color:var(--slate-500);">Reset</a>
+    {% endif %}
+
+    <div style="margin-left:auto;">
+      <input type="text" placeholder="Search standups..." data-table-search="reportsTable" style="padding: 7px 12px; font-size:12px;">
+    </div>
+  </form>
+
+  <!-- Reports Table -->
+  <div class="table-wrap">
+    <table id="reportsTable">
+      <thead>
+        <tr>
+          <th>Employee & Date</th>
+          <th>Work Completed</th>
+          <th>Progress Made</th>
+          <th>Blockers & Roadblocks</th>
+          <th>Self Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in reports %}
+          <tr>
+            <td style="min-width:180px;">
+              <strong>{{ row.name }}</strong>
+              <small style="display:block; color:var(--slate-500);">{{ row.emp_id }} · {{ row.department }}</small>
+              <span style="display:inline-block; font-size:11.5px; font-weight:600; color:var(--indigo-600); margin-top:4px;">
+                {{ row.report_date }}
+              </span>
+            </td>
+            <td style="max-width:280px;">
+              <p style="font-size:13px; line-height:1.5;">{{ row.work_completed }}</p>
+              {% if row.achievements %}
+                <small style="display:block; color:var(--emerald-600); font-weight:500; margin-top:4px;">
+                  &#127881; <strong>Win:</strong> {{ row.achievements }}
+                </small>
+              {% endif %}
+            </td>
+            <td style="max-width:240px;">
+              <p style="font-size:13px; color:var(--slate-700);">{{ row.progress }}</p>
+              {% if row.remaining_work %}
+                <small style="display:block; color:var(--slate-500); margin-top:4px;">
+                  &#9203; <strong>Next:</strong> {{ row.remaining_work }}
+                </small>
+              {% endif %}
+            </td>
+            <td style="max-width:220px;">
+              {% if row.blockers %}
+                <span class="status-badge danger" style="margin-bottom:4px;">Blocker Flagged</span>
+                <p style="font-size:12.5px; color:var(--rose-600); line-height:1.4;">{{ row.blockers }}</p>
+              {% else %}
+                <span style="color:var(--slate-400); font-size:12px;">None reported</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="star-rating" title="{{ row.productivity_rating }} out of 5 stars">
+                {{ '★' * (row.productivity_rating or 0) }}{{ '☆' * (5 - (row.productivity_rating or 0)) }}
+              </div>
+              <small class="muted" style="font-weight:600;">Score: {{ row.productivity_rating }}/5</small>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" class="empty-state">No daily standup reports match the search criteria.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

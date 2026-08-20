@@ -1,1 +1,189 @@
-{% extends 'base.html' %}{% block content %}<div class="dashboard-grid"><section class="panel"><div class="section-heading"><div><p class="eyebrow">WORKFORCE</p><h2>Add employee</h2></div></div><form method="post" class="form-stack"><input type="hidden" name="action" value="create"><label>EMP ID<input name="emp_id" required placeholder="EMP006"></label><label>Name<input name="name" required></label><label>Email<input type="email" name="email"></label><div class="two-col"><label>Department<input name="department" placeholder="Event Operations"></label><label>Designation<input name="designation"></label></div><label>Temporary password<input type="password" name="password" required></label><button class="button primary" type="submit">Add employee <span>-></span></button></form></section><section class="panel"><div class="section-heading"><div><p class="eyebrow">DIRECTORY</p><h2>Employee access</h2></div></div><div class="task-list">{% for person in employees %}<div class="task-row"><div><strong>{{ person.name }}</strong><small>{{ person.emp_id }} · {{ person.department or 'General' }}</small></div><form method="post"><input type="hidden" name="action" value="toggle"><input type="hidden" name="user_id" value="{{ person.id }}"><button class="button {{ 'danger' if person.is_active else 'primary' }}" type="submit">{{ 'Deactivate' if person.is_active else 'Activate' }}</button></form></div>{% else %}<div class="empty-state">No employees yet.</div>{% endfor %}</div></section></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">WORKFORCE DIRECTORY</span>
+      <h2>Employee Directory & Access Control</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      <a href="{{ url_for('export_employees_csv') }}" class="button secondary small">
+        &#128190; Export Directory (CSV)
+      </a>
+      <button class="button primary small" data-open-modal="addEmployeeModal">
+        + Add New Employee
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter / Search Toolbar -->
+  <form method="get" class="filter-bar" style="background:var(--slate-50); padding:14px; border-radius:var(--radius-md); border:1px solid var(--slate-200); margin-bottom: 20px;">
+    <div style="flex:1; min-width:200px;">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search by name, ID, or email..." style="width:100%;">
+    </div>
+    <div>
+      <select name="dept">
+        <option value="">All Departments</option>
+        {% for d in departments %}
+          <option value="{{ d }}" {{ 'selected' if selected_dept == d else '' }}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="button secondary small">Search</button>
+    {% if search or selected_dept %}
+      <a href="{{ url_for('admin_employees') }}" class="button secondary small" style="color:var(--slate-500);">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Workforce Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Contact</th>
+          <th>Status</th>
+          <th>Last Active</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for person in employees %}
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="avatar" style="width:32px; height:32px;">{{ person.name[0] }}</span>
+                <div>
+                  <strong>{{ person.name }}</strong>
+                  <small style="display:block; color:var(--slate-500);">{{ person.emp_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ person.department or 'Operations' }}</td>
+            <td>{{ person.designation or 'Coordinator' }}</td>
+            <td>
+              <span>{{ person.email or '—' }}</span>
+              {% if person.phone %}
+                <small style="display:block; color:var(--slate-500);">{{ person.phone }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <span class="status-badge {{ 'active' if person.is_active else 'offline' }}">
+                {{ 'Active' if person.is_active else 'Deactivated' }}
+              </span>
+            </td>
+            <td>
+              <small class="muted">
+                {{ person.last_login.strftime('%b %d, %I:%M %p') if person.last_login else 'Never' }}
+              </small>
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex; gap:6px;">
+                <!-- Toggle Active/Inactive Form -->
+                <form method="post" style="display:inline;">
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="user_id" value="{{ person.id }}">
+                  <button type="submit" class="button small {{ 'danger' if person.is_active else 'emerald' }}" onclick="return confirm('Change access state for {{ person.name }}?');">
+                    {{ 'Deactivate' if person.is_active else 'Activate' }}
+                  </button>
+                </form>
+
+                <!-- Reset Password Trigger -->
+                <button type="button" class="button secondary small" data-open-modal="resetPwModal_{{ person.id }}">
+                  Reset Pw
+                </button>
+              </div>
+
+              <!-- Reset Password Modal for this Employee -->
+              <div class="modal-backdrop" id="resetPwModal_{{ person.id }}">
+                <div class="modal" style="text-align:left;">
+                  <button class="modal-close" data-close-modal>&times;</button>
+                  <span class="eyebrow">SECURITY OVERRIDE</span>
+                  <h2>Reset Password for {{ person.name }}</h2>
+                  <p class="muted" style="margin-bottom:16px;">Set a new temporary password for ID: {{ person.emp_id }}.</p>
+                  <form method="post" class="form-stack">
+                    <input type="hidden" name="action" value="reset_password">
+                    <input type="hidden" name="user_id" value="{{ person.id }}">
+                    <label>
+                      New Temporary Password
+                      <input type="text" name="new_password" value="Employee@123" required>
+                    </label>
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+                      <button type="button" class="button secondary" data-close-modal>Cancel</button>
+                      <button type="submit" class="button primary">Save New Password</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="empty-state">No workforce members found matching criteria.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Add Employee Modal -->
+<div class="modal-backdrop" id="addEmployeeModal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>&times;</button>
+    <span class="eyebrow">WORKFORCE ONBOARDING</span>
+    <h2>Add New Employee Account</h2>
+    <p class="muted" style="margin-bottom:20px;">Provision credentials for a team member.</p>
+
+    <form method="post" class="form-stack">
+      <input type="hidden" name="action" value="create">
+      <div class="two-col">
+        <label>
+          Employee ID *
+          <input name="emp_id" required placeholder="e.g. EMP006">
+        </label>
+        <label>
+          Full Name *
+          <input name="name" required placeholder="e.g. Elena Rostova">
+        </label>
+      </div>
+
+      <div class="two-col">
+        <label>
+          Corporate Email
+          <input type="email" name="email" placeholder="elena@workpulse.local">
+        </label>
+        <label>
+          Phone Number
+          <input name="phone" placeholder="+1 (555) 019-4829">
+        </label>
+      </div>
+
+      <div class="two-col">
+        <label>
+          Department
+          <input name="department" placeholder="e.g. Stage Operations">
+        </label>
+        <label>
+          Designation / Role
+          <input name="designation" placeholder="e.g. Stage Technician">
+        </label>
+      </div>
+
+      <label>
+        Temporary Initial Password *
+        <input type="text" name="password" value="Employee@123" required>
+      </label>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+        <button type="button" class="button secondary" data-close-modal>Cancel</button>
+        <button type="submit" class="button primary">Create Employee Account &rarr;</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

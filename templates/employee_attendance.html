@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Timesheet Summary Header Cards -->
+<div class="metric-grid">
+  <article class="metric-card accent-indigo">
+    <span>Month Worked Time</span>
+    <strong>{{ total_worked }}</strong>
+    <small>Selected month: {{ selected_month }}</small>
+  </article>
+
+  <article class="metric-card accent-amber">
+    <span>Break Time Logged</span>
+    <strong>{{ total_breaks }}</strong>
+    <small>Lunch & pause sessions</small>
+  </article>
+
+  <article class="metric-card accent-emerald">
+    <span>Shifts Completed</span>
+    <strong>{{ days_worked }}</strong>
+    <small>Total work sessions logged</small>
+  </article>
+
+  <article class="metric-card accent-rose">
+    <span>Authoritative Status</span>
+    <span class="status-badge working" style="margin-top:10px;">Verified</span>
+    <small>Server-stamped timestamps</small>
+  </article>
+</div>
+
+<!-- Timesheet Panel -->
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">PERSONAL TIMESHEET</span>
+      <h2>My Attendance History</h2>
+    </div>
+
+    <!-- Month Filter -->
+    <form method="get" class="filter-bar">
+      <input type="month" name="month" value="{{ selected_month }}" onchange="this.form.submit()">
+      <button type="submit" class="button secondary small">Filter</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Shift Date</th>
+          <th>Punch In</th>
+          <th>Punch Out</th>
+          <th>Break Pauses</th>
+          <th>Net Worked Hours</th>
+          <th>Status</th>
+          <th>Location</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in records %}
+          <tr>
+            <td>
+              <strong>{{ row.punch_in.strftime('%a, %b %d, %Y') }}</strong>
+            </td>
+            <td>
+              <span style="font-family:var(--font-display); font-weight:600;">
+                {{ row.punch_in.strftime('%I:%M %p') }}
+              </span>
+            </td>
+            <td>
+              {% if row.punch_out %}
+                <span style="font-family:var(--font-display); font-weight:600;">
+                  {{ row.punch_out.strftime('%I:%M %p') }}
+                </span>
+              {% else %}
+                <span class="status-badge working">In Progress</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ row.break_seconds|format_seconds }}
+            </td>
+            <td>
+              <strong style="color:var(--indigo-600); font-family:var(--font-display); font-size:14px;">
+                {{ duration(row) }}
+              </strong>
+            </td>
+            <td>
+              <span class="status-badge {{ row.status|lower }}">
+                {{ row.status|replace('_', ' ')|title }}
+              </span>
+            </td>
+            <td>
+              <small class="muted">{{ row.location_note or 'HQ Office' }}</small>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="empty-state">No attendance records found for {{ selected_month }}.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

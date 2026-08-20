@@ -1,1 +1,120 @@
-{% extends 'base.html' %}{% block content %}<section class="panel"><div class="section-heading"><div><p class="eyebrow">TIME RECORDS</p><h2>Attendance history</h2></div><form class="filter-form"><select name="employee"><option value="">All employees</option>{% for person in employees %}<option value="{{ person.id }}" {{ 'selected' if filters.employee == person.id|string else '' }}>{{ person.name }}</option>{% endfor %}</select><input type="date" name="date" value="{{ filters.date }}"><button class="button primary" type="submit">Filter</button></form></div><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Date</th><th>Punch in</th><th>Punch out</th><th>Total hours</th><th>Status</th></tr></thead><tbody>{% for row in records %}<tr><td><strong>{{ row.name }}</strong><br><small>{{ row.emp_id }}</small></td><td>{{ row.punch_in.strftime('%b %d, %Y') }}</td><td>{{ row.punch_in.strftime('%I:%M %p') }}</td><td>{{ row.punch_out.strftime('%I:%M %p') if row.punch_out else 'Working' }}</td><td>{{ duration(row) }}</td><td><span class="status-badge {{ row.status|lower }}">{{ row.status|title }}</span></td></tr>{% else %}<tr><td colspan="6" class="empty-state">No attendance records match those filters.</td></tr>{% endfor %}</tbody></table></div></section>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">PAYROLL & COMPLIANCE RECORDS</span>
+      <h2>Workforce Attendance Timesheets</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      <!-- Export CSV Link with current filters applied -->
+      <a href="{{ url_for('export_attendance_csv', employee=filters.employee, date=filters.date) }}" class="button primary small">
+        &#128190; Export Timesheets (CSV)
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar -->
+  <form method="get" class="filter-bar" style="background:var(--slate-50); padding:14px; border-radius:var(--radius-md); border:1px solid var(--slate-200); margin-bottom: 20px;">
+    <div>
+      <select name="employee" style="min-width:180px;">
+        <option value="">All Staff Members</option>
+        {% for person in employees %}
+          <option value="{{ person.id }}" {{ 'selected' if filters.employee == person.id|string else '' }}>
+            {{ person.name }} ({{ person.emp_id }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <input type="date" name="date" value="{{ filters.date }}" title="Filter by date">
+    </div>
+
+    <div>
+      <select name="status">
+        <option value="">All Statuses</option>
+        <option value="WORKING" {{ 'selected' if filters.status == 'WORKING' else '' }}>Working</option>
+        <option value="ON_BREAK" {{ 'selected' if filters.status == 'ON_BREAK' else '' }}>On Break</option>
+        <option value="COMPLETED" {{ 'selected' if filters.status == 'COMPLETED' else '' }}>Completed</option>
+      </select>
+    </div>
+
+    <button type="submit" class="button secondary small">Apply Filters</button>
+    {% if filters.employee or filters.date or filters.status %}
+      <a href="{{ url_for('admin_attendance') }}" class="button secondary small" style="color:var(--slate-500);">Reset</a>
+    {% endif %}
+
+    <div style="margin-left:auto;">
+      <input type="text" placeholder="Quick search..." data-table-search="attendanceTable" style="padding: 7px 12px; font-size:12px;">
+    </div>
+  </form>
+
+  <!-- Records Table -->
+  <div class="table-wrap">
+    <table id="attendanceTable">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Shift Date</th>
+          <th>Punch In</th>
+          <th>Punch Out</th>
+          <th>Break Duration</th>
+          <th>Net Worked</th>
+          <th>Status</th>
+          <th>Location / Node</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in records %}
+          <tr>
+            <td>
+              <strong>{{ row.name }}</strong>
+              <small style="display:block; color:var(--slate-500);">{{ row.emp_id }} · {{ row.department }}</small>
+            </td>
+            <td>
+              <strong>{{ row.punch_in.strftime('%a, %b %d, %Y') }}</strong>
+            </td>
+            <td>
+              <span style="font-family:var(--font-display); font-weight:600;">
+                {{ row.punch_in.strftime('%I:%M %p') }}
+              </span>
+            </td>
+            <td>
+              {% if row.punch_out %}
+                <span style="font-family:var(--font-display); font-weight:600;">
+                  {{ row.punch_out.strftime('%I:%M %p') }}
+                </span>
+              {% else %}
+                <span class="status-badge working">Active Now</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ row.break_seconds|format_seconds }}
+            </td>
+            <td>
+              <strong style="color:var(--indigo-600); font-family:var(--font-display); font-size:14px;">
+                {{ duration(row) }}
+              </strong>
+            </td>
+            <td>
+              <span class="status-badge {{ row.status|lower }}">
+                {{ row.status|replace('_', ' ')|title }}
+              </span>
+            </td>
+            <td>
+              <small class="muted">{{ row.location_note or 'Web Portal' }}</small>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="empty-state">No attendance records match the selected filters.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

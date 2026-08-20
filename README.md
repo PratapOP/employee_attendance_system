@@ -1,71 +1,119 @@
-# WorkPulse
+# WorkPulse Enterprise Operations Platform
 
-WorkPulse is a cloud-backed employee attendance, productivity, and task management system for event operations teams.
+**WorkPulse** is a corporate-grade Employee Attendance, Workforce Operations, Shift Timekeeping, and Daily Asynchronous Standup Platform engineered for high-velocity teams and event operations.
 
-## Features
+Designed for frictionless serverless deployment on **Vercel** backed by cloud **PostgreSQL (Supabase / Neon)**.
 
-- Role-based admin and employee authentication with hashed passwords
-- Server-authoritative punch-in, punch-out, working hours, and attendance history
-- Daily productivity reports with remaining-task acknowledgement
-- Task assignment and completion tracking
-- Browser activity heartbeat with active, idle, and offline states
-- Admin team pulse, attendance, productivity, and Chart.js analytics views
-- Responsive corporate UI and Vercel serverless configuration
+---
+
+## Key Enterprise Features
+
+### 1. Authoritative Attendance & Shift Stopwatch
+- **Server-Authoritative Timekeeping**: Punch-in and punch-out calculations are validated server-side to prevent client timestamp tampering.
+- **Break & Pause Tracking**: Seamlessly start and stop Lunch, Coffee, Meeting, and Personal breaks with authoritative subtraction from total shift hours.
+- **Live Visual Stopwatch**: Real-time responsive timer showing live net working hours and pulse status.
+- **Personal Timesheets**: Employees can inspect monthly punch logs, break durations, and location notes.
+
+### 2. Daily EOD Standup & Productivity Reports
+- **Structured Shift Wrap-Up**: Employees submit accomplishments, progress milestones, blockers, and self-ratings upon punch-out.
+- **Blocker Alert System**: Management dashboard highlights blocked initiatives for instant unblocking.
+- **Task Acknowledgment Guard**: Prompts employees before sign-off if priority deliverables remain incomplete.
+
+### 3. Task Delivery Queue & Priority Dispatch
+- **Priority Matrix**: Categorize tasks by `URGENT`, `HIGH`, `MEDIUM`, or `LOW`.
+- **Workflow State Progression**: Move deliverables across `TODO`, `IN_PROGRESS`, `COMPLETED`, and `BLOCKED`.
+- **Automated Notifications**: Team members receive in-app alerts whenever work is assigned.
+
+### 4. Leave & Time-Off Management
+- **Self-Service Requests**: Submit PTO, Casual, Sick, Half-Day, or Remote Work requests with date ranges and rationale.
+- **Manager Review Workflow**: Operations leads approve or reject with contextual comments.
+
+### 5. Management Command & Executive Analytics
+- **Live Team Pulse**: Monitor active workers, on-break staff, idle members, and offline team in real time.
+- **Interactive Visualizations (Chart.js)**:
+  - Task execution breakdown (Donut chart).
+  - 7-day workforce hours logged (Bar chart).
+- **Payroll-Ready CSV Exports**: One-click exports for Timesheets, Standup Reports, and Workforce Directory.
+- **Enterprise Audit Trail**: Automated security logging for logins, punches, task completions, and status changes.
+
+---
 
 ## Technology Stack
 
-Flask, PostgreSQL on Supabase, psycopg2, server-rendered HTML, custom CSS, vanilla JavaScript, and Chart.js CDN.
+- **Backend**: Python 3.11, Flask 3.1, WSGI Serverless Runtime
+- **Database**: PostgreSQL 15+ (Supabase / Neon / Railway / AWS RDS) with `psycopg2-binary`
+- **Frontend**: Semantic HTML5, Custom Executive Design System (Vanilla CSS), Vanilla JavaScript, Chart.js CDN
+- **Cloud Platform**: Vercel Serverless Functions (`@vercel/python`)
 
-## Architecture
+---
 
-`app.py` contains routing, authorization, business logic, and parameterized SQL. Templates provide the two role-specific workspaces; static assets contain the shared UI and browser heartbeat/timer behavior. No local persistence is used.
+## Local Development Quickstart
 
-## Database
+### 1. Clone & Environment Setup
+```bash
+git clone https://github.com/YOUR_USERNAME/employee_attendance_system.git
+cd employee_attendance_system
+python -m venv .venv
+# On Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# On macOS / Linux:
+source .venv/bin/activate
 
-Run `database/schema.sql` in the Supabase SQL Editor. The partial unique index prevents two open attendance sessions for one employee.
+pip install -r requirements.txt
+```
 
-## Authentication
+### 2. Configure Environment
+Copy `.env.example` to `.env` and configure your database string:
+```bash
+cp .env.example .env
+```
 
-Passwords are stored using Werkzeug PBKDF2 hashing. Flask sessions hold only the authenticated user id, role, and display name. Admin routes are protected server-side.
+### 3. Initialize Schema & Seed Data
+Execute `database/schema.sql` in your Supabase or PostgreSQL SQL editor, then seed demo accounts:
+```bash
+python seed.py
+```
 
-## Local Setup
+### 4. Start Development Server
+```bash
+python app.py
+```
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 
-1. Create a Python virtual environment: `python -m venv .venv`
-2. Activate it and install dependencies: `pip install -r requirements.txt`
-3. Copy `.env.example` to `.env` and fill in Supabase values.
-4. Run the schema in Supabase.
-5. Seed development data: `python seed.py`
-6. Start the app: `python app.py`
-7. Open `http://127.0.0.1:5000`
-
-## Environment Variables
-
-- `DATABASE_URL`: Supabase PostgreSQL connection string
-- `SECRET_KEY`: long random Flask session secret
-- `FLASK_DEBUG`: optional local debug flag
-
-## Supabase Setup
-
-Create a Supabase project, copy the Postgres connection string from Project Settings > Database, and run the schema SQL. Use the pooled connection string for serverless deployments when appropriate.
+---
 
 ## Vercel Deployment
 
-Import the GitHub repository into Vercel, set the `DATABASE_URL` and `SECRET_KEY` environment variables, and deploy. `vercel.json` selects the Python runtime and routes all requests to `app.py`.
+For complete step-by-step instructions, see **[DEPLOYMENT_ROADMAP.md](DEPLOYMENT_ROADMAP.md)**.
 
-## Demo Credentials
+1. Push your repository to GitHub.
+2. Import project on [Vercel](https://vercel.com).
+3. Set environment variables:
+   - `DATABASE_URL`: `postgresql://...` (Supabase / Neon Connection Pooler URL with `?sslmode=require`)
+   - `SECRET_KEY`: `[64-character random hex string]`
+   - `FLASK_ENV`: `production`
+   - `VERCEL`: `1`
+4. Click **Deploy**.
 
-Development-only credentials created by `seed.py`:
+---
 
-- Admin: `ADMIN001` / `Admin@123`
-- Employee: `EMP001` / `Employee@123`
-- Other employees: `EMP002` through `EMP005` / `Employee@123`
+## Demo Accounts
 
-Change or remove these credentials before production use.
+| Role | Employee ID | Password | Department |
+|---|---|---|---|
+| **Director of Operations** | `ADMIN001` | `Admin@123` | Executive Operations |
+| **Shift Lead (Coordinator)** | `EMP001` | `Employee@123` | Event Production |
+| **Partnerships Lead** | `EMP002` | `Employee@123` | Sponsorship & Brand |
+| **Creative Producer** | `EMP003` | `Employee@123` | Creative & Design |
+| **Technical Specialist** | `EMP004` | `Employee@123` | Stage & Tech Ops |
+| **Marketing Manager** | `EMP005` | `Employee@123` | Growth & Marketing |
 
-## Screenshots
+---
 
-Add deployment screenshots here after the first Vercel release.
+## Corporate Scaling Roadmap
 
-## Future Improvements
-
-CSRF protection, audit logs, richer filters, email delivery, configurable departments, and a dedicated mobile experience.
+See **[DEPLOYMENT_ROADMAP.md](DEPLOYMENT_ROADMAP.md)** for the 4-phase enterprise roadmap:
+- **Phase 1**: Custom Domain, SSL & Hardening
+- **Phase 2**: Single Sign-On (Google Workspace, Azure AD) & Slack/Teams Webhooks
+- **Phase 3**: Gusto/Deel Payroll API Integration & Mobile PWA Check-In
+- **Phase 4**: Multi-Tier RBAC & SOC-2 Compliance

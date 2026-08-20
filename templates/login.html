@@ -1,3 +1,99 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WorkPulse | Sign in</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
-<body class="login-page"><main class="login-shell"><section class="login-brand"><span class="brand-mark">W</span><p class="eyebrow">EVENT OPERATIONS</p><h1>WorkPulse</h1><p>Attendance, momentum, and daily delivery in one calm workspace.</p><div class="login-note"><strong>Built for the work behind the scenes.</strong><span>Track the day, unblock the team, and keep every event moving.</span></div></section><section class="login-panel"><div><p class="eyebrow">SECURE ACCESS</p><h2>Welcome back</h2><p class="muted">Sign in with your employee or admin credentials.</p></div>{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert error">{{ messages[0] }}</div>{% endif %}{% endwith %}<form method="post" class="form-stack"><label>Employee or Admin ID<input name="emp_id" placeholder="e.g. EMP001" required autofocus></label><label>Password<input type="password" name="password" placeholder="Enter password" required></label><button class="button primary wide" type="submit">Sign in <span>-></span></button></form><p class="demo-hint">Demo: <b>ADMIN001</b> / <b>Admin@123</b> or <b>EMP001</b> / <b>Employee@123</b></p></section></main></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkPulse | Corporate Authentication</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    
+    <!-- Brand Hero Side -->
+    <section class="login-brand-side">
+      <div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="brand-mark">W</span>
+          <strong style="font-family:var(--font-display); font-size:22px; letter-spacing:-0.5px;">WorkPulse</strong>
+        </div>
+        <div style="margin-top: 48px;">
+          <span class="eyebrow" style="color:var(--emerald-500);">WORKFORCE OPERATIONS PLATFORM</span>
+          <h1>Precision Attendance & Live Operations</h1>
+          <p class="muted" style="color:var(--slate-300); font-size:15px; line-height:1.6; max-width:360px; margin-top:12px;">
+            Server-authoritative timekeeping, structured daily standups, break analytics, and real-time team momentum in one unified command center.
+          </p>
+        </div>
+      </div>
+
+      <div style="border-left: 3px solid var(--emerald-500); padding-left: 16px; margin-top: 40px;">
+        <strong style="color:var(--white); font-size:13px; display:block;">Corporate-Ready Security</strong>
+        <span style="color:var(--slate-400); font-size:12px;">Role-based isolation, encrypted session tokens, and automated audit trails.</span>
+      </div>
+    </section>
+
+    <!-- Sign In Form Side -->
+    <section class="login-form-side">
+      <div>
+        <span class="eyebrow">ENTERPRISE GATEWAY</span>
+        <h2>Sign in to your shift</h2>
+        <p class="muted" style="font-size:13px; margin-top:4px;">Enter your assigned employee or administrator credentials.</p>
+      </div>
+
+      {% if not db_configured %}
+        <div style="background:var(--rose-50); border:1px solid var(--rose-100); color:var(--rose-600); padding:12px 14px; border-radius:var(--radius-md); font-size:12px; margin-top:18px;">
+          <strong>DATABASE_URL Required:</strong> Please configure your PostgreSQL connection string in your environment variables.
+        </div>
+      {% endif %}
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div style="background:var(--rose-50); border:1px solid var(--rose-100); color:var(--rose-600); padding:10px 14px; border-radius:var(--radius-md); font-size:12.5px; margin-top:16px;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="form-stack" style="margin-top: 24px;">
+        <label>
+          Employee or Admin ID
+          <input name="emp_id" placeholder="e.g. EMP001 or ADMIN001" required autofocus autocomplete="username">
+        </label>
+        <label>
+          Password
+          <input type="password" name="password" placeholder="••••••••••••" required autocomplete="current-password">
+        </label>
+        <button class="button primary wide large" type="submit">
+          Sign In to Workspace &rarr;
+        </button>
+      </form>
+
+      <!-- Quick Demo Credentials Selector -->
+      <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--slate-200);">
+        <small class="muted" style="font-weight:600; display:block; margin-bottom:8px;">QUICK DEMO ACCOUNTS:</small>
+        <div class="demo-pills">
+          <button type="button" class="demo-pill" onclick="fillCredentials('ADMIN001', 'Admin@123')">
+            &#128081; Admin (Director)
+          </button>
+          <button type="button" class="demo-pill" onclick="fillCredentials('EMP001', 'Employee@123')">
+            &#128100; EMP001 (Shift Lead)
+          </button>
+          <button type="button" class="demo-pill" onclick="fillCredentials('EMP002', 'Employee@123')">
+            &#128100; EMP002 (Partnerships)
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

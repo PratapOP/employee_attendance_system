@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">TIME-OFF & ABSENCE</span>
+      <h2>My Leave Applications</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      <button class="button primary small" data-open-modal="applyLeaveModal">
+        + Apply for Leave
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Leave Type</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Management Review</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for leave in leaves %}
+          <tr>
+            <td>
+              <span class="status-badge {{ 'neutral' if leave.leave_type == 'CASUAL' else 'in_progress' }}">
+                {{ leave.leave_type|replace('_', ' ')|title }}
+              </span>
+            </td>
+            <td><strong>{{ leave.start_date }}</strong></td>
+            <td><strong>{{ leave.end_date }}</strong></td>
+            <td style="max-width:280px;">
+              <span style="font-size:13px;">{{ leave.reason }}</span>
+            </td>
+            <td>
+              <span class="status-badge {{ leave.status|lower }}">
+                {{ leave.status|title }}
+              </span>
+            </td>
+            <td>
+              {% if leave.status == 'PENDING' %}
+                <span class="muted" style="font-size:12px;">Awaiting Manager Review</span>
+              {% else %}
+                <small style="display:block; color:var(--slate-700); font-weight:500;">
+                  Reviewed by {{ leave.reviewer_name or 'Management' }}
+                </small>
+                {% if leave.manager_comment %}
+                  <small style="display:block; color:var(--slate-500); font-style:italic;">
+                    "{{ leave.manager_comment }}"
+                  </small>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="empty-state">No leave applications submitted yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Apply Leave Modal -->
+<div class="modal-backdrop" id="applyLeaveModal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>&times;</button>
+    <span class="eyebrow">TIME-OFF REQUEST</span>
+    <h2>Submit Leave Application</h2>
+    <p class="muted" style="margin-bottom:20px;">Your request will be routed to operations management for approval.</p>
+
+    <form method="post" class="form-stack">
+      <label>
+        Leave Category *
+        <select name="leave_type" required>
+          <option value="CASUAL" selected>Casual Leave</option>
+          <option value="PAID_TIME_OFF">Paid Time Off (PTO / Vacation)</option>
+          <option value="SICK">Sick / Medical Leave</option>
+          <option value="HALF_DAY">Half-Day Shift</option>
+          <option value="REMOTE_WORK">Remote Work Authorization</option>
+        </select>
+      </label>
+
+      <div class="two-col">
+        <label>
+          Start Date *
+          <input type="date" name="start_date" required>
+        </label>
+        <label>
+          End Date *
+          <input type="date" name="end_date" required>
+        </label>
+      </div>
+
+      <label>
+        Reason / Justification *
+        <textarea name="reason" required placeholder="Please provide details for the requested time off..."></textarea>
+      </label>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+        <button type="button" class="button secondary" data-close-modal>Cancel</button>
+        <button type="submit" class="button primary">Submit Request &rarr;</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

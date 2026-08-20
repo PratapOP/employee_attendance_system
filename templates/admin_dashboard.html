@@ -1,1 +1,225 @@
-{% extends 'base.html' %}{% block content %}<div class="metric-grid"><article class="metric-card accent"><span>Total employees</span><strong>{{ stats.total_employees }}</strong><small>Active workforce</small></article><article class="metric-card"><span>Working now</span><strong>{{ stats.working }}</strong><small>Live sessions</small></article><article class="metric-card"><span>Idle / offline</span><strong>{{ stats.idle }} / {{ stats.offline }}</strong><small>App activity status</small></article><article class="metric-card"><span>Hours today</span><strong>{{ stats.hours_today }}</strong><small>Across the team</small></article></div><div class="dashboard-grid"><section class="panel"><div class="section-heading"><div><p class="eyebrow">TEAM PULSE</p><h2>Employee status</h2></div><span class="status-badge neutral">Updated now</span></div><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Status</th><th>Punch in</th><th>Working time</th><th>Tasks</th><th>Last activity</th></tr></thead><tbody>{% for row in employees %}<tr><td><strong>{{ row.name }}</strong><br><small>{{ row.emp_id }} · {{ row.department or 'General' }}</small></td><td><span class="status-badge {{ row.activity_status|lower }}">{{ row.activity_status|title }}</span></td><td>{{ row.punch_in.strftime('%I:%M %p') if row.punch_in else '—' }}</td><td>{{ row.working_time }}</td><td>{{ row.completed_tasks }}/{{ row.total_tasks }}</td><td>{{ row.last_activity or 'No activity' }}</td></tr>{% endfor %}</tbody></table></div></section><section class="panel"><div class="section-heading"><div><p class="eyebrow">WORKLOAD</p><h2>Task completion</h2></div></div><canvas id="taskChart" height="220"></canvas></section></div><section class="panel"><div class="section-heading"><div><p class="eyebrow">TEAM HOURS</p><h2>Working hours by employee</h2></div></div><canvas id="hoursChart" height="90"></canvas></section>{% endblock %}{% block scripts %}<script>const chartData={{ chart_data|tojson }};new Chart(document.getElementById('taskChart'),{type:'doughnut',data:{labels:['Completed','Pending'],datasets:[{data:[chartData.completed,chartData.pending],backgroundColor:['#087f7b','#e9c46a'],borderWidth:0}]},options:{plugins:{legend:{position:'bottom'}}}});new Chart(document.getElementById('hoursChart'),{type:'bar',data:{labels:chartData.names,datasets:[{label:'Hours',data:chartData.hours,backgroundColor:'#e56f5d',borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});</script>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Executive Metrics Cards -->
+<div class="metric-grid">
+  <article class="metric-card accent-emerald">
+    <div class="metric-card-header">
+      <span>Active Workforce</span>
+      <span class="status-badge working">Live</span>
+    </div>
+    <strong>{{ stats.working }} / {{ stats.total_employees }}</strong>
+    <small>Employees currently on shift</small>
+  </article>
+
+  <article class="metric-card accent-amber">
+    <div class="metric-card-header">
+      <span>On Break / Idle</span>
+      <span class="status-badge on_break">Pauses</span>
+    </div>
+    <strong>{{ stats.on_break }} / {{ stats.idle }}</strong>
+    <small>{{ stats.on_break }} on break · {{ stats.idle }} idle</small>
+  </article>
+
+  <article class="metric-card accent-indigo">
+    <div class="metric-card-header">
+      <span>Hours Logged Today</span>
+      <span class="status-badge in_progress">Shift Time</span>
+    </div>
+    <strong>{{ stats.hours_today_fmt }}</strong>
+    <small>Calculated across all staff</small>
+  </article>
+
+  <article class="metric-card accent-rose">
+    <div class="metric-card-header">
+      <span>Pending Leaves</span>
+      {% if stats.pending_leaves > 0 %}
+        <span class="status-badge urgent">{{ stats.pending_leaves }} Pending</span>
+      {% else %}
+        <span class="status-badge neutral">Clear</span>
+      {% endif %}
+    </div>
+    <strong>{{ stats.pending_leaves }}</strong>
+    <small><a href="{{ url_for('admin_leaves') }}" style="color:var(--indigo-600); font-weight:600;">Review leave requests &rarr;</a></small>
+  </article>
+</div>
+
+<!-- Team Pulse Real-Time Operations Grid -->
+<div class="dashboard-grid">
+  
+  <!-- Live Team Pulse Table -->
+  <section class="panel" style="margin-bottom:0;">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">REAL-TIME MONITOR</span>
+        <h2>Team Pulse & Live Status</h2>
+      </div>
+      <div class="section-heading-actions">
+        <input type="text" class="filter-bar input" placeholder="Search staff..." data-table-search="teamPulseTable" style="padding: 6px 12px; font-size:12px; border-radius:var(--radius-md); border:1px solid var(--slate-300);">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="teamPulseTable">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Activity</th>
+            <th>Shift Time</th>
+            <th>Current Focus</th>
+            <th>Tasks Done</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in employees %}
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="avatar" style="width:28px; height:28px; font-size:12px;">{{ row.name[0] }}</span>
+                  <div>
+                    <strong>{{ row.name }}</strong>
+                    <small style="display:block; color:var(--slate-500);">{{ row.emp_id }} · {{ row.department }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="activity-chip" style="font-size:11px; padding:4px 8px;">
+                  <span class="pulse-dot {{ row.activity_status|lower }}"></span>
+                  {{ row.activity_status|replace('_', ' ')|title }}
+                </span>
+              </td>
+              <td>
+                <strong>{{ row.working_time }}</strong>
+                {% if row.break_seconds > 0 %}
+                  <small style="display:block; color:var(--amber-600);">Break: {{ row.break_seconds|format_seconds }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-size:12.5px; color:var(--slate-700);">{{ row.current_task }}</span>
+              </td>
+              <td>
+                <span style="font-weight:600; color:var(--slate-900);">{{ row.completed_tasks }}/{{ row.total_tasks }}</span>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" class="empty-state">No active employees found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Workload & Task Status Donut Chart -->
+  <section class="panel" style="margin-bottom:0;">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">DELIVERY BREAKDOWN</span>
+        <h2>Task Execution Health</h2>
+      </div>
+      <a href="{{ url_for('admin_tasks') }}" class="button secondary small">Manage Tasks &rarr;</a>
+    </div>
+    <div style="position:relative; height: 260px; display:flex; justify-content:center;">
+      <canvas id="taskDistributionChart"></canvas>
+    </div>
+  </section>
+
+</div>
+
+<!-- Team Productivity & Weekly Hours Chart -->
+<section class="panel" style="margin-top:20px;">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">7-DAY PRODUCTIVITY TREND</span>
+      <h2>Hours Logged by Workforce Member</h2>
+    </div>
+    <a href="{{ url_for('export_attendance_csv') }}" class="button secondary small">
+      &#128190; Export Timesheets (CSV)
+    </a>
+  </div>
+  <div style="height: 180px;">
+    <canvas id="teamHoursBarChart"></canvas>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const rawChartData = {{ chart_data|tojson }};
+
+  // 1. Task Execution Donut Chart
+  const taskCtx = document.getElementById('taskDistributionChart');
+  if (taskCtx) {
+    new Chart(taskCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Completed', 'In Progress', 'To Do', 'Blocked'],
+        datasets: [{
+          data: [
+            rawChartData.completed,
+            rawChartData.in_progress,
+            rawChartData.todo,
+            rawChartData.blocked
+          ],
+          backgroundColor: ['#10B981', '#F59E0B', '#6366F1', '#EF4444'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { family: 'DM Sans', size: 12 }, padding: 16 }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
+
+  // 2. Team Hours Bar Chart
+  const hoursCtx = document.getElementById('teamHoursBarChart');
+  if (hoursCtx) {
+    new Chart(hoursCtx, {
+      type: 'bar',
+      data: {
+        labels: rawChartData.names,
+        datasets: [{
+          label: 'Hours (Last 7 Days)',
+          data: rawChartData.hours,
+          backgroundColor: '#4F46E5',
+          borderRadius: 6,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.raw} hrs worked`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#E2E8F0' },
+            ticks: { font: { family: 'DM Sans' } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'DM Sans' } }
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

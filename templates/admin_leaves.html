@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">TIME-OFF MANAGEMENT</span>
+      <h2>Workforce Leave & Absence Requests</h2>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Leave Type</th>
+          <th>Dates Requested</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Manager Action / Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for leave in leaves %}
+          <tr>
+            <td>
+              <strong>{{ leave.employee_name }}</strong>
+              <small style="display:block; color:var(--slate-500);">{{ leave.emp_id }} · {{ leave.department }}</small>
+            </td>
+            <td>
+              <span class="status-badge {{ 'neutral' if leave.leave_type == 'CASUAL' else 'in_progress' }}">
+                {{ leave.leave_type|replace('_', ' ')|title }}
+              </span>
+            </td>
+            <td>
+              <strong>{{ leave.start_date }}</strong> to <strong>{{ leave.end_date }}</strong>
+            </td>
+            <td style="max-width:260px;">
+              <span style="font-size:13px;">{{ leave.reason }}</span>
+            </td>
+            <td>
+              <span class="status-badge {{ leave.status|lower }}">
+                {{ leave.status|title }}
+              </span>
+            </td>
+            <td>
+              {% if leave.status == 'PENDING' %}
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="button small emerald" data-open-modal="approveModal_{{ leave.id }}">
+                    Approve
+                  </button>
+                  <button type="button" class="button small danger" data-open-modal="rejectModal_{{ leave.id }}">
+                    Reject
+                  </button>
+                </div>
+
+                <!-- Approve Modal -->
+                <div class="modal-backdrop" id="approveModal_{{ leave.id }}">
+                  <div class="modal" style="text-align:left;">
+                    <button class="modal-close" data-close-modal>&times;</button>
+                    <span class="eyebrow">LEAVE APPROVAL</span>
+                    <h2>Approve Leave Request</h2>
+                    <p class="muted" style="margin-bottom:16px;">Approve {{ leave.leave_type }} for {{ leave.employee_name }}.</p>
+                    <form method="post" action="{{ url_for('admin_leave_action', leave_id=leave.id) }}" class="form-stack">
+                      <input type="hidden" name="action" value="APPROVED">
+                      <label>
+                        Manager Note (Optional)
+                        <input name="manager_comment" placeholder="e.g. Approved. Have a great time!">
+                      </label>
+                      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+                        <button type="button" class="button secondary" data-close-modal>Cancel</button>
+                        <button type="submit" class="button emerald">Confirm Approval</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Reject Modal -->
+                <div class="modal-backdrop" id="rejectModal_{{ leave.id }}">
+                  <div class="modal" style="text-align:left;">
+                    <button class="modal-close" data-close-modal>&times;</button>
+                    <span class="eyebrow">LEAVE REJECTION</span>
+                    <h2>Reject Leave Request</h2>
+                    <p class="muted" style="margin-bottom:16px;">Please provide context for the rejection.</p>
+                    <form method="post" action="{{ url_for('admin_leave_action', leave_id=leave.id) }}" class="form-stack">
+                      <input type="hidden" name="action" value="REJECTED">
+                      <label>
+                        Rejection Reason *
+                        <textarea name="manager_comment" required placeholder="e.g. Critical event milestone during these dates."></textarea>
+                      </label>
+                      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+                        <button type="button" class="button secondary" data-close-modal>Cancel</button>
+                        <button type="submit" class="button danger">Confirm Rejection</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              {% else %}
+                <div>
+                  <small style="display:block; color:var(--slate-600);">
+                    Reviewed by {{ leave.reviewer_name or 'Management' }}
+                  </small>
+                  {% if leave.manager_comment %}
+                    <small style="display:block; color:var(--slate-500); font-style:italic;">
+                      "{{ leave.manager_comment }}"
+                    </small>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="empty-state">No leave applications submitted yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

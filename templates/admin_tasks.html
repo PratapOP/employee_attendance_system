@@ -1,1 +1,171 @@
-{% extends 'base.html' %}{% block content %}<div class="dashboard-grid"><section class="panel"><div class="section-heading"><div><p class="eyebrow">ASSIGN WORK</p><h2>New task</h2></div></div><form method="post" class="form-stack"><label>Task title<input name="title" required placeholder="e.g. Confirm venue load-in"></label><label>Description<textarea name="description"></textarea></label><label>Employee<select name="employee_id" required>{% for person in employees %}<option value="{{ person.id }}">{{ person.name }} · {{ person.emp_id }}</option>{% endfor %}</select></label><div class="two-col"><label>Priority<select name="priority"><option>HIGH</option><option selected>MEDIUM</option><option>LOW</option></select></label><label>Due date<input type="date" name="due_date"></label></div><button class="button primary" type="submit">Assign task <span>-></span></button></form></section><section class="panel"><div class="section-heading"><div><p class="eyebrow">DELIVERY QUEUE</p><h2>All tasks</h2></div></div><div class="task-list">{% for task in tasks %}<div class="task-row"><div><strong>{{ task.title }}</strong><small>{{ task.name }} · {{ task.due_date or 'No due date' }}</small></div><span class="status-badge {{ task.status|lower }}">{{ task.status|replace('_',' ')|title }}</span></div>{% else %}<div class="empty-state">No tasks have been assigned.</div>{% endfor %}</div></section></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">OPERATIONS DISPATCH</span>
+      <h2>Task Queue & Deliverables Board</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      <button class="button primary small" data-open-modal="newTaskModal">
+        + Assign New Task
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Toolbar -->
+  <form method="get" class="filter-bar" style="background:var(--slate-50); padding:14px; border-radius:var(--radius-md); border:1px solid var(--slate-200); margin-bottom: 20px;">
+    <div>
+      <select name="status">
+        <option value="">All Statuses</option>
+        <option value="TODO" {{ 'selected' if filters.status == 'TODO' else '' }}>To Do</option>
+        <option value="IN_PROGRESS" {{ 'selected' if filters.status == 'IN_PROGRESS' else '' }}>In Progress</option>
+        <option value="COMPLETED" {{ 'selected' if filters.status == 'COMPLETED' else '' }}>Completed</option>
+        <option value="BLOCKED" {{ 'selected' if filters.status == 'BLOCKED' else '' }}>Blocked</option>
+      </select>
+    </div>
+
+    <div>
+      <select name="employee">
+        <option value="">All Assignees</option>
+        {% for person in employees %}
+          <option value="{{ person.id }}" {{ 'selected' if filters.employee == person.id|string else '' }}>
+            {{ person.name }} ({{ person.emp_id }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="button secondary small">Filter</button>
+    {% if filters.status or filters.employee %}
+      <a href="{{ url_for('admin_tasks') }}" class="button secondary small" style="color:var(--slate-500);">Reset</a>
+    {% endif %}
+
+    <div style="margin-left:auto;">
+      <input type="text" placeholder="Search tasks..." data-table-search="tasksTable" style="padding: 7px 12px; font-size:12px;">
+    </div>
+  </form>
+
+  <!-- Tasks Table -->
+  <div class="table-wrap">
+    <table id="tasksTable">
+      <thead>
+        <tr>
+          <th>Task & Details</th>
+          <th>Assignee</th>
+          <th>Priority</th>
+          <th>Category</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th style="text-align:right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+          <tr>
+            <td style="max-width:320px;">
+              <strong>{{ task.title }}</strong>
+              {% if task.description %}
+                <small style="display:block; color:var(--slate-500); margin-top:2px;">{{ task.description }}</small>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ task.employee_name }}</strong>
+              <small style="display:block; color:var(--slate-500);">{{ task.emp_id }}</small>
+            </td>
+            <td>
+              <span class="priority-pill priority-{{ task.priority|lower }}">
+                {{ task.priority }}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:12px; color:var(--slate-600);">{{ task.category or 'General' }}</span>
+            </td>
+            <td>
+              <span style="font-weight:500; font-size:12.5px;">{{ task.due_date or '—' }}</span>
+            </td>
+            <td>
+              <span class="status-badge {{ task.status|lower }}">
+                {{ task.status|replace('_', ' ')|title }}
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <form method="post" action="{{ url_for('admin_delete_task', task_id=task.id) }}" style="display:inline;" onsubmit="return confirm('Delete this task?');">
+                <button type="submit" class="button small danger" title="Delete Task">&#128465;</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="empty-state">No tasks match the active filters.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- New Task Modal -->
+<div class="modal-backdrop" id="newTaskModal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>&times;</button>
+    <span class="eyebrow">TASK DISPATCH</span>
+    <h2>Assign Work to Team Member</h2>
+    <p class="muted" style="margin-bottom:20px;">Dispatch an operational deliverable with priority and deadline.</p>
+
+    <form method="post" class="form-stack">
+      <input type="hidden" name="action" value="create">
+      
+      <label>
+        Task Title *
+        <input name="title" required placeholder="e.g. Inspect West Entrance Security Gate">
+      </label>
+
+      <label>
+        Detailed Deliverable Description
+        <textarea name="description" placeholder="Include checklist items, key stakeholders, or special instructions..."></textarea>
+      </label>
+
+      <div class="two-col">
+        <label>
+          Assign To *
+          <select name="employee_id" required>
+            {% for person in employees %}
+              <option value="{{ person.id }}">{{ person.name }} ({{ person.emp_id }})</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          Priority *
+          <select name="priority">
+            <option value="LOW">Low Priority</option>
+            <option value="MEDIUM" selected>Medium Priority</option>
+            <option value="HIGH">High Priority</option>
+            <option value="URGENT">Urgent / Critical</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="two-col">
+        <label>
+          Category
+          <input name="category" placeholder="e.g. Technical, Logistics, Sponsorship" value="Operations">
+        </label>
+
+        <label>
+          Due Date
+          <input type="date" name="due_date">
+        </label>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+        <button type="button" class="button secondary" data-close-modal>Cancel</button>
+        <button type="submit" class="button primary">Dispatch Task &rarr;</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

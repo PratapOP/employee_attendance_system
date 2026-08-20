@@ -1,1 +1,52 @@
-{% extends 'base.html' %}{% block content %}<section class="panel"><div class="section-heading"><div><p class="eyebrow">INBOX</p><h2>Notifications</h2></div></div>{% for notification in items %}<div class="task-row"><div><strong>{{ notification.title }}</strong><p class="muted">{{ notification.message }}</p></div><small>{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</small></div>{% else %}<div class="empty-state">You are all caught up.</div>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="panel">
+  <div class="section-heading" style="flex-wrap:wrap; gap:16px;">
+    <div>
+      <span class="eyebrow">INBOX & ACTIVITY FEED</span>
+      <h2>System Alerts & Notifications</h2>
+    </div>
+    
+    <div class="section-heading-actions">
+      {% if items %}
+        <form method="post" action="{{ url_for('notifications_read_all') }}">
+          <button type="submit" class="button secondary small">
+            &#10003; Mark All as Read
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="task-list">
+    {% for item in items %}
+      <div class="task-card" style="{{ 'background:var(--white); border-left: 3px solid var(--indigo-500);' if not item.is_read else 'opacity:0.8;' }}">
+        <div style="flex:1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span class="status-badge {{ 'neutral' if item.category == 'SYSTEM' else 'in_progress' }}" style="font-size:10px;">
+              {{ item.category or 'SYSTEM' }}
+            </span>
+            <strong>{{ item.title }}</strong>
+            {% if not item.is_read %}
+              <span class="status-badge urgent" style="font-size:9px; padding:2px 5px;">New</span>
+            {% endif %}
+          </div>
+          <p style="font-size:13px; color:var(--slate-700); line-height:1.4;">{{ item.message }}</p>
+          <small class="muted" style="display:block; margin-top:4px;">
+            {{ item.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+          </small>
+        </div>
+
+        {% if item.link %}
+          <div>
+            <a href="{{ item.link }}" class="button secondary small">View &rarr;</a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="empty-state">You're all caught up! No notifications in your feed.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
