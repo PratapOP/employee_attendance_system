@@ -124,7 +124,7 @@ def seed_database():
 
         # Notifications & Audit
         cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (?, 'Task Assigned: Safety Inspection', 'Avery assigned you an urgent task.', 'TASK', '/employee', 0)", (ids['EMP001'],))
-        cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (?, 'Leave Approved', 'Remote work request approved.', 'LEAVE', '/employee/leaves', 1)", (ids['EMP003'],))
+        cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (%s, 'Leave Approved', 'Remote work request approved.', 'LEAVE', '/employee/leaves', 1)", (ids['EMP003'],))
         cur.execute("insert into audit_logs (user_id, action, details, ip_address) values (?, 'SYSTEM_SEED', 'Local SQLite seed initialized.', '127.0.0.1')", (ids['ADMIN001'],))
 
         conn.commit()
@@ -191,7 +191,7 @@ def seed_database():
             cur.execute("insert into leaves (employee_id, leave_type, start_date, end_date, reason, status, manager_comment, reviewed_by, reviewed_at) values (%s, 'REMOTE_WORK', %s, %s, 'Graphic render sprint.', 'APPROVED', 'Approved.', %s, now())", (ids['EMP003'], today + timedelta(days=3), today + timedelta(days=4), ids['ADMIN001']))
 
             cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (%s, 'Task Assigned: Safety Inspection', 'Avery assigned you an urgent task.', 'TASK', '/employee', false)", (ids['EMP001'],))
-            cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (?, 'Leave Approved', 'Remote work request approved.', 'LEAVE', '/employee/leaves', true)", (ids['EMP003'],))
+            cur.execute("insert into notifications (employee_id, title, message, category, link, is_read) values (%s, 'Leave Approved', 'Remote work request approved.', 'LEAVE', '/employee/leaves', true)", (ids['EMP003'],))
             cur.execute("insert into audit_logs (user_id, action, details, ip_address) values (%s, 'SYSTEM_SEED', 'PostgreSQL seed initialized.', '127.0.0.1')", (ids['ADMIN001'],))
 
             conn.commit()

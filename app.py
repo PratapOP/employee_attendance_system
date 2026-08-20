@@ -95,7 +95,7 @@ def get_db():
         return conn
     else:
         url = os.getenv('DATABASE_URL')
-        if 'sslmode=' not in url and not url.startswith(('postgresql://localhost', 'postgresql://127.0.0.1')):
+        if 'sslmode=' not in url and not any(h in url for h in ('@localhost', '@127.0.0.1', '://localhost', '://127.0.0.1')):
             url += ('&' if '?' in url else '?') + 'sslmode=require'
         if USE_PSYCOPG3:
             return psycopg.connect(url, row_factory=dict_row, connect_timeout=10)
@@ -244,6 +244,7 @@ def hours_since(employee_id, start_date):
 def duration_filter(row):
     return row_duration(row)
 
+app.jinja_env.globals['duration'] = duration_filter
 @app.template_filter('format_seconds')
 def format_seconds_filter(seconds):
     return fmt_seconds(seconds)
